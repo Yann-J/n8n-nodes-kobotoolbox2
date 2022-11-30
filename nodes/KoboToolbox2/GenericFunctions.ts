@@ -16,7 +16,7 @@ export async function koboToolboxApiRequest(
 	option: IDataObject = {},
 	// tslint:disable-next-line:no-any
 ): Promise<any> {
-	const credentials = await this.getCredentials('koboToolboxApi');
+	const credentials = await this.getCredentials('koboToolbox2Api');
 
 	// Set up pagination / scrolling
 	const returnAll = !!option.returnAll;
@@ -66,7 +66,7 @@ export async function koboToolboxRawRequest(
 	option: IHttpRequestOptions,
 	// tslint:disable-next-line:no-any
 ): Promise<any> {
-	const credentials = await this.getCredentials('koboToolboxApi');
+	const credentials = await this.getCredentials('koboToolbox2Api');
 
 	if (option.url && !/^http(s)?:/.test(option.url)) {
 		option.url = credentials.URL + option.url;
@@ -204,7 +204,7 @@ export async function downloadAttachments(
 		binary: {},
 	};
 
-	const credentials = await this.getCredentials('koboToolboxApi');
+	const credentials = await this.getCredentials('koboToolbox2Api');
 
 	// Look for attachment links - there can be more than one
 	const attachmentList = (submission['_attachments'] || submission['attachments']) as any[]; // tslint:disable-line:no-any
