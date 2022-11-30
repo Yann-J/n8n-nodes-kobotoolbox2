@@ -2,8 +2,6 @@
 
 This is an n8n community node. It lets you use [KoboToolbox](https://www.kobotoolbox.org/) in your n8n workflows.
 
-![logo](./nodes/KoboToolbox2/koboToolbox.svg)
-
 [![npm version](https://badge.fury.io/js/n8n-nodes-kobotoolbox2.svg)](https://badge.fury.io/js/n8n-nodes-kobotoolbox2)
 
 
