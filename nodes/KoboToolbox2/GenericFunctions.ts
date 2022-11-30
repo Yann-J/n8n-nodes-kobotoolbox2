@@ -46,7 +46,7 @@ export async function koboToolboxApiRequest(
 	while (keepLooking) {
 		const response = await this.helpers.httpRequestWithAuthentication.call(
 			this,
-			'koboToolboxApi',
+			'koboToolbox2Api',
 			options,
 		);
 		// Append or set results
@@ -72,7 +72,7 @@ export async function koboToolboxRawRequest(
 		option.url = credentials.URL + option.url;
 	}
 
-	return await this.helpers.httpRequestWithAuthentication.call(this, 'koboToolboxApi', option);
+	return await this.helpers.httpRequestWithAuthentication.call(this, 'koboToolbox2Api', option);
 }
 
 function parseGeoPoint(geoPoint: string): null | number[] {
