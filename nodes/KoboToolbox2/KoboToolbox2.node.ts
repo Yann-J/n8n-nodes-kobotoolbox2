@@ -495,6 +495,7 @@ export class KoboToolbox2 implements INodeType {
 					const fileMode = this.getNodeParameter('fileMode', i) as string;
 					const overwrite = this.getNodeParameter('overwrite', i) as boolean;
 
+					// tslint:disable-next-line:no-any
 					const body: any = {
 						description: 'Uploaded file',
 						file_type: 'form_media',
@@ -531,7 +532,7 @@ export class KoboToolbox2 implements INodeType {
 						const file = await getFormFileByName.call(this, formId, body.metadata.filename);
 						if (file) {
 							// File with same name already exists, delete it
-							let resp = await koboToolboxApiRequest.call(this, {
+							const resp = await koboToolboxApiRequest.call(this, {
 								method: 'DELETE',
 								url: `/api/v2/assets/${formId}/files/${file.uid}`,
 							});

@@ -305,7 +305,7 @@ export async function getFormFileByName(
 	// tslint:disable-next-line:no-any
 ): Promise<any> {
 	// Need to fetch all files, and lookup the ID by filename...
-	let files = await koboToolboxApiRequest.call(this, {
+	const files = await koboToolboxApiRequest.call(this, {
 		url: `/api/v2/assets/${formId}/files`,
 		qs: {
 			file_type: 'form_media',
