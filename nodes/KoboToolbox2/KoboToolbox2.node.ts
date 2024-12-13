@@ -7,11 +7,13 @@ import {
 	INodeExecutionData,
 	INodeType,
 	INodeTypeDescription,
+	NodeOperationError,
 } from 'n8n-workflow';
 
 import {
 	downloadAttachments,
 	formatSubmission,
+	getFormFileByName,
 	koboToolboxApiRequest,
 	koboToolboxRawRequest,
 	loadForms,
@@ -380,20 +382,59 @@ export class KoboToolbox2 implements INodeType {
 				const formId = this.getNodeParameter('formId', i) as string;
 
 				if (operation === 'getAll') {
-					responseData = [
-						await koboToolboxApiRequest.call(this, {
-							url: `/api/v2/assets/${formId}/files`,
-							qs: {
-								file_type: 'form_media',
-							},
-							scroll: true,
-						}),
-					];
+					const download = this.getNodeParameter('download', i) as boolean;
+
+					const files = await koboToolboxApiRequest.call(this, {
+						url: `/api/v2/assets/${formId}/files`,
+						qs: {
+							file_type: 'form_media',
+						},
+						scroll: true,
+					});
+
+					if (download) {
+						for (const file of files) {
+							const binaryPropertyName = this.getNodeParameter('binaryPropertyName', i) as string;
+
+							const binaryItem: INodeExecutionData = {
+								json: file,
+								binary: {},
+							};
+
+							const response = await koboToolboxRawRequest.call(this, {
+								url: `/api/v2/assets/${formId}/files/${file.uid}/content`,
+								encoding: 'arraybuffer',
+							});
+
+							binaryItem.binary![binaryPropertyName] = await this.helpers.prepareBinaryData(
+								response,
+								file.metadata.filename,
+							);
+
+							binaryItems.push(binaryItem);
+						}
+					} else {
+						responseData = files;
+					}
 				}
 
 				if (operation === 'get') {
-					const fileId = this.getNodeParameter('fileId', i) as string;
+					const fileSelector = this.getNodeParameter('fileSelector', i) as string;
+					const fileName = this.getNodeParameter('fileName', i, null) as string;
+					let fileId = this.getNodeParameter('fileId', i, null) as string;
 					const download = this.getNodeParameter('download', i) as boolean;
+
+					if ('fileName' === fileSelector) {
+						const file = await getFormFileByName.call(this, formId, fileName);
+						fileId = file?.uid;
+					}
+
+					if (!fileId) {
+						throw new NodeOperationError(
+							this.getNode(),
+							`No file found matching name "${fileName}"`,
+						);
+					}
 
 					responseData = [
 						await koboToolboxApiRequest.call(this, {
@@ -426,7 +467,22 @@ export class KoboToolbox2 implements INodeType {
 				}
 
 				if (operation === 'delete') {
-					const fileId = this.getNodeParameter('fileId', i) as string;
+					const fileSelector = this.getNodeParameter('fileSelector', i) as string;
+					const fileName = this.getNodeParameter('fileName', i, null) as string;
+					let fileId = this.getNodeParameter('fileId', i, null) as string;
+
+					if ('fileName' === fileSelector) {
+						const file = await getFormFileByName.call(this, formId, fileName);
+						fileId = file?.uid;
+					}
+
+					if (!fileId) {
+						throw new NodeOperationError(
+							this.getNode(),
+							`No file found matching name "${fileName}"`,
+						);
+					}
+
 					responseData = [
 						await koboToolboxApiRequest.call(this, {
 							method: 'DELETE',
@@ -437,7 +493,9 @@ export class KoboToolbox2 implements INodeType {
 
 				if (operation === 'create') {
 					const fileMode = this.getNodeParameter('fileMode', i) as string;
-					const body: IDataObject = {
+					const overwrite = this.getNodeParameter('overwrite', i) as boolean;
+
+					const body: any = {
 						description: 'Uploaded file',
 						file_type: 'form_media',
 					};
@@ -451,12 +509,33 @@ export class KoboToolbox2 implements INodeType {
 						body.metadata = {
 							filename: binaryData.fileName,
 						};
+					} else if ('text' === fileMode) {
+						// Use base64 encoding to upload
+						const fileName = this.getNodeParameter('fileName', i) as string;
+						const mimeType = this.getNodeParameter('mimeType', i) as string;
+						const fileContent = this.getNodeParameter('fileContent', i) as string;
+						const base64Content = Buffer.from(fileContent).toString('base64');
+						body.base64Encoded = 'data:' + mimeType + ';base64,' + base64Content;
+						body.metadata = {
+							filename: fileName,
+						};
 					} else {
 						const fileUrl = this.getNodeParameter('fileUrl', i) as string;
 
 						body.metadata = {
 							redirect_url: fileUrl,
 						};
+					}
+
+					if (overwrite && body.metadata?.filename) {
+						const file = await getFormFileByName.call(this, formId, body.metadata.filename);
+						if (file) {
+							// File with same name already exists, delete it
+							let resp = await koboToolboxApiRequest.call(this, {
+								method: 'DELETE',
+								url: `/api/v2/assets/${formId}/files/${file.uid}`,
+							});
+						}
 					}
 
 					responseData = [

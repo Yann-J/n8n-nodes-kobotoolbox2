@@ -297,3 +297,27 @@ export async function loadForms(this: ILoadOptionsFunctions): Promise<INodePrope
 
 	return responseData?.map((survey: any) => ({ name: survey.name, value: survey.uid })) || []; // tslint:disable-line:no-any
 }
+
+export async function getFormFileByName(
+	this: IExecuteFunctions | IWebhookFunctions | IHookFunctions | ILoadOptionsFunctions,
+	formId: string,
+	fileName: string,
+	// tslint:disable-next-line:no-any
+): Promise<any> {
+	// Need to fetch all files, and lookup the ID by filename...
+	let files = await koboToolboxApiRequest.call(this, {
+		url: `/api/v2/assets/${formId}/files`,
+		qs: {
+			file_type: 'form_media',
+		},
+		scroll: true,
+	});
+
+	for (const file of files) {
+		if (fileName === file?.metadata?.filename) {
+			return file;
+		}
+	}
+
+	return null;
+}
